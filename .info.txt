@@ -1,0 +1,17 @@
+i wanna make Личный кабинет системы учета клиентов тренажерного зала.
+so there are conditions: Использовать микросервисную архитектуру построения backend-части приложения.
+– Для реализации backend-части использовать одно из следующих решений (при
+желании различные решения для разных микросервисов): Express.js, Fastify, NestJS. ( i wanna choose express)
+– Реализовать механизм авторизации на основе JWT, логику по работе с
+пользователями вынести в отдельный микросервис (при необходимости разделить
+роли пользователей). (i wanna microservice for auth with emplimentaion jwt with access and refresh tokens and may be logic inside in application we will also want to separate into microservice)
+-Для хранения данных использовать БД (PostgreSQL, MySQL или mongoDB – не более) (I wanna use postgress)
+
+create a plan of application step by step and describe every step, especcially set up and other things
+and what i need to write in gitignore
+
+Разработать приложение, состоящие из backend-части (nodejs + typescript) и frontend-части
+(ReactJS + typescript), использующих разделяемый набор типов.
+
+also i need to separate types from front and back
+overall not code, compose structure, logic, endpoints for our app and in the end make up types
