@@ -1,59 +1,54 @@
-import * as UserRepository from "../repositories/user.repository"
+import { LoginDto, RegisterDto } from "@lab1_2/types"
 import { generateTokens, verifyRefreshToken } from "../utils/jwt"
 import { comparePassword, hashPassword } from "../utils/password"
+import * as UserClient from "../grpc/user.client"
+import crypto from "crypto"
 
-export const register = async ({ email, password, name }: any) => {
+export const register = async (data: RegisterDto) => {
 
-  const existing = await UserRepository.findByEmail(email)
+  const { email, password, name } = data
 
-  if (existing) {
+  const existing = await UserClient.getUserByEmail(email)
+
+  if (existing && (existing as any).id) {
     throw new Error("User already exists")
   }
 
   const passwordHash = await hashPassword(password)
 
-  const user = await UserRepository.create({
+  const userId = crypto.randomUUID()
+
+  const user = await UserClient.createUser({
+    id: userId,
     email,
-    passwordHash,
-    name
+    name,
+    passwordHash
   })
 
-  const tokens = generateTokens(user.id)
+  const tokens = generateTokens(userId)
 
   return tokens
 }
 
-export const login = async ({ email, password }: any) => {
+export const login = async (data: LoginDto) => {
+  const { email, password } = data
 
-  const user = await UserRepository.findByEmail(email)
+  const user = await UserClient.getUserByEmail(email)
 
-  if (!user) {
+  if (!user || !(user as any).id) {
     throw new Error("Invalid credentials")
   }
 
-  const valid = await comparePassword(password, user.password_hash)
+  const valid = await comparePassword(password, (user as any).passwordHash)
 
   if (!valid) {
     throw new Error("Invalid credentials")
   }
 
-  const tokens = generateTokens(user.id)
-
-  return tokens
+  return generateTokens((user as any).id)
 }
 
 export const refresh = async (refreshToken: string) => {
-
   const payload = verifyRefreshToken(refreshToken)
-
-  const tokens = generateTokens(payload.userId)
-
-  return tokens
-}
-
-export const getMe = async (userId: string) => {
-
-  const user = await UserRepository.findById(userId)
-
-  return user
+  return generateTokens(payload.userId)
 }

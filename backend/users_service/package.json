@@ -1,11 +1,12 @@
 {
-  "name": "auth_service",
+  "name": "users_service",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node-dev src/app.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "migrate": "ts-node src/db/migrate.ts"
   },
   "keywords": [],
   "author": "",
@@ -14,20 +15,24 @@
   "dependencies": {
     "@lab1_2/types": "*",
     "@lab1_2/protos": "*",
-    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
-    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.5",
     "@types/pg": "^8.18.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "ts-node-dev": "^2.0.0",
     "ts-proto": "^2.11.4",
     "typescript": "^5.9.3"

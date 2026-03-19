@@ -1,0 +1,11 @@
+services:
+  lab1_2_db:
+    container_name: 'lab1_2_db'
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=lab1_2
+    ports:
+      - "5440:5432"

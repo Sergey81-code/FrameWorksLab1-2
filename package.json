@@ -1,0 +1,9 @@
+{
+  "name": "lab1_2",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend/*",
+    "packages/*"
+  ]
+}
