@@ -8,6 +8,7 @@ import * as protoLoader from "@grpc/proto-loader"
 import userRoutes from "./routes/user.routes"
 import { swaggerSpec } from "./swagger/swagger"
 import { userServiceImpl } from "./grpc/user.server"
+import { errorMiddleware } from "./middlewares/error.middleware"
 
 dotenv.config()
 const app = express()
@@ -16,6 +17,7 @@ app.use(cors())
 app.use(express.json())
 app.use("/users", userRoutes)
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+app.use(errorMiddleware);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" })

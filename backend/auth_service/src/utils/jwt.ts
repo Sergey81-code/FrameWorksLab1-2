@@ -1,16 +1,20 @@
-import jwt from "jsonwebtoken"
+import jwt, { SignOptions } from "jsonwebtoken"
 import dotenv from "dotenv"
+import { ConfigError } from "../errors/errors"
 
 dotenv.config()
 
+const ACCESS_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES_IN as SignOptions["expiresIn"]
+const REFRESH_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES_IN as SignOptions["expiresIn"]
+
 const ACCESS_SECRET = process.env.ACCESS_SECRET
 if (!ACCESS_SECRET) {
-  throw new Error("ACCESS_SECRET is not set in .env")
+  throw new ConfigError("ACCESS_SECRET is not set in .env");
 }
 
 const REFRESH_SECRET = process.env.REFRESH_SECRET
 if (!REFRESH_SECRET) {
-  throw new Error("REFRESH_SECRET is not set in .env")
+  throw new ConfigError("REFRESH_SECRET is not set in .env")
 }
 
 export const generateTokens = (userId: string) => {
@@ -18,13 +22,13 @@ export const generateTokens = (userId: string) => {
   const accessToken = jwt.sign(
     { userId },
     ACCESS_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn:  ACCESS_EXPIRES}
   )
 
   const refreshToken = jwt.sign(
     { userId },
     REFRESH_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: REFRESH_EXPIRES}
   )
 
   return {

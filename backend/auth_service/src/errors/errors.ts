@@ -8,7 +8,7 @@ export class HttpError extends Error {
 
 export class UserExistsError extends HttpError {
   constructor() {
-    super("User already exists", 409); // HTTP 409 Conflict
+    super("User already exists", 409);
   }
 }
 
@@ -45,5 +45,11 @@ export class UserNotFoundError extends HttpError {
 export class MissingTokenError extends HttpError {
   constructor() {
     super("Refresh token is missing", 400);
+  }
+}
+
+export class ConfigError extends HttpError {
+  constructor(message: string) {
+    super(message, 500);
   }
 }
