@@ -5,11 +5,11 @@ export const createUser = async (data: CreateUserDto) => {
 
   const result = await pool.query(
     `
-    INSERT INTO users (id, email, name)
-    VALUES ($1, $2, $3)
+    INSERT INTO users (id, email, name, password)
+    VALUES ($1, $2, $3, $4)
     RETURNING *
     `,
-    [data.id, data.email, data.name]
+    [data.id, data.email, data.name, data.passwordHash]
   )
 
   return result.rows[0]
@@ -76,9 +76,11 @@ export const updateAvatar = async (id: string, avatar: string) => {
 
 export const deleteUser = async (id: string) => {
 
-  await pool.query(
+  const result = await pool.query(
     `DELETE FROM users WHERE id = $1`,
     [id]
   )
+  if (result.rowCount === null) return false;
+  return result.rowCount > 0;
 
 }

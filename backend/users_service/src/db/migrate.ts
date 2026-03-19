@@ -13,6 +13,7 @@ async function migrate() {
         id UUID PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
         name TEXT,
+        password TEXT NOT NULL,
         avatar TEXT,
         phone TEXT,
         birth_date DATE,

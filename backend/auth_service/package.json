@@ -12,13 +12,15 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@lab1_2/types": "*",
     "@lab1_2/protos": "*",
+    "@lab1_2/types": "*",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@grpc/grpc-js": "^1.14.3",
@@ -28,6 +30,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.5",
     "@types/pg": "^8.18.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "ts-node-dev": "^2.0.0",
     "ts-proto": "^2.11.4",
     "typescript": "^5.9.3"

@@ -33,6 +33,7 @@ export const userServiceImpl: grpc.UntypedServiceImplementation = {
   ) => {
     const { email } = call.request
     const user = await UserService.getUserByEmail(email)
-    callback(null, user)
+    
+    callback(null, user ?? { id: "", email: "", name: "" })
   },
 }

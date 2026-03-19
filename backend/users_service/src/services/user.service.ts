@@ -10,7 +10,7 @@ export const createUser = async (data: CreateUserDto) => {
     throw new Error("User already exists")
   }
 
-  const user = await UserRepository.create({
+  const user = await UserRepository.createUser({
     id,
     email,
     name,
@@ -36,7 +36,7 @@ export const getUserByEmail = async (email: string) => {
     id: user.id,
     email: user.email,
     name: user.name,
-    passwordHash: user.passwordHash
+    passwordHash: user.password
   }
 }
 

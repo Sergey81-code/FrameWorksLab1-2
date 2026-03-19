@@ -3,6 +3,7 @@ import { generateTokens, verifyRefreshToken } from "../utils/jwt"
 import { comparePassword, hashPassword } from "../utils/password"
 import * as UserClient from "../grpc/user.client"
 import crypto from "crypto"
+import { ExpiredTokenError, InvalidTokenError, InvalidUsernameOrPasswordError, MissingTokenError, UserExistsError, UserNotFoundError } from "../errors/errors"
 
 export const register = async (data: RegisterDto) => {
 
@@ -11,7 +12,7 @@ export const register = async (data: RegisterDto) => {
   const existing = await UserClient.getUserByEmail(email)
 
   if (existing && (existing as any).id) {
-    throw new Error("User already exists")
+    throw new  UserExistsError();
   }
 
   const passwordHash = await hashPassword(password)
@@ -36,19 +37,39 @@ export const login = async (data: LoginDto) => {
   const user = await UserClient.getUserByEmail(email)
 
   if (!user || !(user as any).id) {
-    throw new Error("Invalid credentials")
+    throw new InvalidUsernameOrPasswordError()
   }
 
   const valid = await comparePassword(password, (user as any).passwordHash)
 
   if (!valid) {
-    throw new Error("Invalid credentials")
+    throw new InvalidUsernameOrPasswordError()
   }
 
   return generateTokens((user as any).id)
 }
 
 export const refresh = async (refreshToken: string) => {
-  const payload = verifyRefreshToken(refreshToken)
-  return generateTokens(payload.userId)
-}
+  if (!refreshToken) {
+    throw new MissingTokenError();
+  }
+
+  let payload: any;
+  try {
+    payload = verifyRefreshToken(refreshToken); 
+  } catch (err: any) {
+    if (err.name === "TokenExpiredError") {
+      throw new ExpiredTokenError();
+    }
+    throw new InvalidTokenError();
+  }
+
+  if (!payload || !payload.userId) {
+    throw new InvalidTokenError();
+  }
+
+
+  const tokens = generateTokens(payload.userId);
+
+  return tokens;
+};
