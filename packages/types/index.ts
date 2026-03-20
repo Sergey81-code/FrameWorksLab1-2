@@ -1,2 +1,7 @@
 export * from "./src/auth/auth.types"
 export * from "./src/users/user.types"
+export * from "./src/products/category.types"
+export * from "./src/products/product.types"
+export * from "./src/products/product_photo.types"
+export * from "./src/orders/order.types"
+export * from "./src/delivery/delivery.types"

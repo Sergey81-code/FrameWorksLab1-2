@@ -1,8 +1,6 @@
 {
   "name": "@lab1_2/protos",
   "version": "1.0.0",
-  "main": "src",
-  "files": [
-    "proto"
-  ]
+  "main": "proto",
+  "files": ["proto"]
 }

@@ -22,3 +22,13 @@ export interface UpdateUserDto {
   phone?: string
   birth_date?: string
 }
+
+
+export interface UserResponse {
+  id: string
+  email: string
+  name?: string
+  avatar?: string
+  phone?: string
+  birth_date?: string
+}
