@@ -4,22 +4,20 @@ import {
   Card,
   Col,
   DatePicker,
-  Descriptions,
-  Divider,
   Empty,
   Form,
-  Image,
-  List,
   Row,
   Space,
-  टैब्स as Tabs,
+  Tabs,
   Table,
   Tag,
   Upload,
   message,
+  Typography,
+  Input,
 } from "antd";
 import type { UploadProps } from "antd";
-import { EditOutlined, UserOutlined, UploadOutlined } from "@ant-design/icons";
+import {UserOutlined, UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
@@ -245,7 +243,7 @@ export default function ProfilePage() {
               <Table
                 rowKey="id"
                 dataSource={orderRows}
-                columns={orderColumns as any}
+                columns={orderColumns}
                 pagination={{ pageSize: 5 }}
                 scroll={{ x: 1000 }}
               />

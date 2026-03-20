@@ -75,8 +75,10 @@ export default function CartPage() {
       dispatch(clearCart());
       message.success("Заказ оформлен");
       navigate("/profile");
-    } catch (e: any) {
-      message.error(e?.data?.error ?? "Не удалось оформить заказ");
+    } catch (e: unknown) {
+        const err = e as { data?: { error?: string } };
+
+        message.error(err?.data?.error ?? "Не удалось оформить заказ");
     }
   };
 
