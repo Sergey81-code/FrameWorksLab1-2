@@ -22,14 +22,9 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).json(tokens)
   } catch (err: any) {
       const status = err.statusCode || 500;
-      res.status(status).json({ error: err.message });
+      return res.status(status).json({ error: err.message });
   }
 
-  const body: LoginDto = req.body
-
-  const tokens = await AuthService.login(body)
-
-  res.json(tokens)
 }
 
 export const refresh = async (req: Request, res: Response) => {

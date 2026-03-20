@@ -82,9 +82,6 @@ export default function AppLayout() {
             <Typography.Title level={3} style={{ margin: 0, color: "#d46b08" }}>
               Orange Shop
             </Typography.Title>
-            <Typography.Text type="secondary">
-              clean, fast, responsive
-            </Typography.Text>
           </div>
           {menu}
         </Sider>

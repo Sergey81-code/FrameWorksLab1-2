@@ -17,7 +17,7 @@ import {
   Input,
 } from "antd";
 import type { UploadProps } from "antd";
-import {UserOutlined, UploadOutlined } from "@ant-design/icons";
+import { UserOutlined, UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
@@ -32,6 +32,9 @@ import { useGetDeliveriesQuery } from "../app/api/deliveryApi";
 import { useGetProductsQuery } from "../app/api/catalogApi";
 import { logout, setUser } from "../app/slices/authSlice";
 import { useNavigate } from "react-router-dom";
+
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 type ProfileForm = {
   name?: string;
@@ -126,6 +129,26 @@ export default function ProfilePage() {
     }
   };
 
+const orderRows = orders.map((order) => ({
+  ...order,
+  delivery: deliveryMap.get(order.id),
+  delivery_date: deliveryMap.get(order.id)?.delivery_date
+    ? dayjs(deliveryMap.get(order.id)!.delivery_date).add(3, "hour")
+    : null,
+}));
+
+  const sortedOrders = useMemo(() => {
+    const statusOrder = ["pending", "processing", "shipped", "delivered", "canceled"];
+    return [...orderRows].sort((a, b) => {
+      const statusDiff = statusOrder.indexOf(a.delivery?.status ?? "") - statusOrder.indexOf(b.delivery?.status ?? "");
+      if (statusDiff !== 0) return statusDiff;
+
+      if (!a.delivery_date) return 1;
+      if (!b.delivery_date) return -1;
+      return a.delivery_date.isAfter(b.delivery_date) ? 1 : -1;
+    });
+  }, [orderRows]);
+
   const orderColumns = [
     {
       title: "Заказ",
@@ -155,6 +178,14 @@ export default function ProfilePage() {
       render: (_: unknown, row: any) => row.delivery?.address ?? "—",
     },
     {
+      title: "Дата и время доставки",
+      key: "deliveryDate",
+      render: (_: unknown, row: any) =>
+            row.delivery_date
+      ? dayjs.utc(row.delivery_date).local().format("DD.MM.YYYY HH:mm")
+      : "—",
+    },
+    {
       title: "Доставка",
       key: "deliveryStatus",
       render: (_: unknown, row: any) =>
@@ -175,11 +206,6 @@ export default function ProfilePage() {
           .join(", "),
     },
   ];
-
-  const orderRows = orders.map((order) => ({
-    ...order,
-    delivery: deliveryMap.get(order.id),
-  }));
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -237,12 +263,12 @@ export default function ProfilePage() {
           {
             key: "orders",
             label: "Заказы",
-            children: orderRows.length === 0 ? (
+            children: sortedOrders.length === 0 ? (
               <Empty description="Заказов пока нет" />
             ) : (
               <Table
                 rowKey="id"
-                dataSource={orderRows}
+                dataSource={sortedOrders}
                 columns={orderColumns}
                 pagination={{ pageSize: 5 }}
                 scroll={{ x: 1000 }}

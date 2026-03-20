@@ -11,11 +11,14 @@ import type { RootState } from "../store";
 import { logout, setCredentials } from "../slices/authSlice";
 import type { Tokens } from "@lab1_2/types";
 
-
 const getBaseUrl = (url: string) => {
   if (url.startsWith("/auth")) return import.meta.env.VITE_AUTH_API;
   if (url.startsWith("/users")) return import.meta.env.VITE_USER_API;
-  if (url.startsWith("/categories") || url.startsWith("/products") || url.startsWith("/product-photos"))
+  if (
+    url.startsWith("/categories") ||
+    url.startsWith("/products") ||
+    url.startsWith("/product-photos")
+  )
     return import.meta.env.VITE_CATALOG_API;
   if (url.startsWith("/orders")) return import.meta.env.VITE_ORDER_API;
   if (url.startsWith("/deliveries")) return import.meta.env.VITE_DELIVERY_API;
@@ -29,7 +32,6 @@ const dynamicBaseQuery: BaseQueryFn<
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   const state = api.getState() as RootState;
-
   const token = state.auth.accessToken || localStorage.getItem("accessToken");
 
   const rawBaseQuery = fetchBaseQuery({
@@ -43,7 +45,6 @@ const dynamicBaseQuery: BaseQueryFn<
 
   let result = await rawBaseQuery(args, api, extraOptions);
 
-
   if (result.error?.status === 401) {
     const refreshToken =
       state.auth.refreshToken || localStorage.getItem("refreshToken");
@@ -51,6 +52,10 @@ const dynamicBaseQuery: BaseQueryFn<
     if (refreshToken) {
       const refreshBaseQuery = fetchBaseQuery({
         baseUrl: import.meta.env.VITE_AUTH_API,
+        prepareHeaders: (headers) => {
+          headers.set("content-type", "application/json");
+          return headers;
+        },
       });
 
       const refreshResult = await refreshBaseQuery(
@@ -66,8 +71,14 @@ const dynamicBaseQuery: BaseQueryFn<
       if (refreshResult.data) {
         const tokens = refreshResult.data as Tokens;
 
-        api.dispatch(setCredentials(tokens));
+        api.dispatch(
+          setCredentials({
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken ?? refreshToken,
+          })
+        );
 
+        // Повторяем исходный запрос с новым токеном
         result = await rawBaseQuery(args, api, extraOptions);
       } else {
         api.dispatch(logout());

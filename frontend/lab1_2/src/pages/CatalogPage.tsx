@@ -6,11 +6,11 @@ import {
   Empty,
   Input,
   Row,
-  Segmented,
   Space,
   Spin,
   Typography,
   message,
+  TreeSelect,
 } from "antd";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
@@ -18,7 +18,15 @@ import { useGetCategoriesQuery, useGetProductsQuery } from "../app/api/catalogAp
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { addToCart, decreaseQuantity, increaseQuantity } from "../app/slices/cartSlice";
 import { useNavigate } from "react-router-dom";
-import type { ProductResponse } from "@lab1_2/types";
+import type { Category, ProductResponse } from "@lab1_2/types";
+
+
+interface TreeNode {
+  title: string;
+  value: string;
+  key: string;
+  children?: TreeNode[];
+}
 
 export default function CatalogPage() {
   const navigate = useNavigate();
@@ -39,17 +47,64 @@ export default function CatalogPage() {
     return map;
   }, [cartItems]);
 
+  const buildCategoryTree = (categories: Category[]) => {
+    const map: Record<string, Category & { children: Category[] }> = {};
+    const roots: (Category & { children: Category[] })[] = [];
+
+    categories.forEach((cat) => {
+      map[cat.id] = { ...cat, children: [] };
+    });
+
+    categories.forEach((cat) => {
+      if (cat.parent_id && map[cat.parent_id]) {
+        map[cat.parent_id].children.push(map[cat.id]);
+      } else {
+        roots.push(map[cat.id]);
+      }
+    });
+
+    return roots;
+  };
+
+  const treeData: TreeNode[] = useMemo(() => {
+    if (!categories) return [];
+
+  const mapNode = (cat: Category & { children: Category[] }): TreeNode => ({
+    title: cat.name,
+    value: cat.id,
+    key: cat.id,
+    children: cat.children && cat.children.length > 0
+      ? (cat.children as (Category & { children: Category[] })[]).map(mapNode)
+      : undefined,
+  });
+
+    return [
+      { title: "Все", value: "all", key: "all" },
+      ...buildCategoryTree(categories).map(mapNode),
+    ];
+  }, [categories]);
+
   const filteredProducts = useMemo(() => {
     const list = products ?? [];
+
+    const selectedCategoryIds = new Set<string>();
+    const collectIds = (catId: string) => {
+      selectedCategoryIds.add(catId);
+      categories
+        ?.filter((c) => c.parent_id === catId)
+        .forEach((child) => collectIds(child.id));
+    };
+    if (categoryId && categoryId !== "all") collectIds(categoryId);
+
     return list.filter((product) => {
       const matchesCategory =
-        categoryId === "all" || product.category_id === categoryId;
+        categoryId === "all" || (product.category_id !== null && selectedCategoryIds.has(product.category_id));
       const matchesSearch = product.name
         .toLowerCase()
         .includes(search.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [products, categoryId, search]);
+  }, [products, categoryId, search, categories]);
 
   const renderControls = (product: ProductResponse) => {
     const quantity = quantities[product.id] ?? 0;
@@ -97,9 +152,6 @@ export default function CatalogPage() {
         <Typography.Title level={2} style={{ marginBottom: 0 }}>
           Каталог
         </Typography.Title>
-        <Typography.Text type="secondary">
-          Оранжевый, чистый и максимально удобный интерфейс
-        </Typography.Text>
 
         <Input.Search
           allowClear
@@ -109,13 +161,14 @@ export default function CatalogPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <Segmented
+        <TreeSelect
+          style={{ width: "100%" }}
           value={categoryId}
           onChange={(value) => setCategoryId(String(value))}
-          options={[
-            { label: "Все", value: "all" },
-            ...(categories ?? []).map((c) => ({ label: c.name, value: c.id })),
-          ]}
+          treeData={treeData}
+          placeholder="Выберите категорию"
+          allowClear
+          treeDefaultExpandAll
         />
       </Space>
 
@@ -149,9 +202,20 @@ export default function CatalogPage() {
                   {product.description ?? "Описание отсутствует"}
                 </Typography.Paragraph>
 
-                <Typography.Title level={4} style={{ margin: 0, color: "#d46b08" }}>
-                  {product.price.toLocaleString()} ₽
-                </Typography.Title>
+              <Typography.Title level={4} style={{ margin: 0, color: "#d46b08" }}>
+                {product.discount ? (
+                  <span>
+                    <Typography.Text delete style={{ marginRight: 8 }}>
+                      {Math.floor(Number(product.price)).toLocaleString("ru-RU")} ₽
+                    </Typography.Text>
+                    <Typography.Text strong>
+                      {Math.floor(Number(product.price) * (1 - product.discount / 100)).toLocaleString("ru-RU")} ₽
+                    </Typography.Text>
+                  </span>
+                ) : (
+                  <span>{Math.floor(Number(product.price)).toLocaleString("ru-RU")} ₽</span>
+                )}
+              </Typography.Title>
 
                 {renderControls(product)}
               </Space>

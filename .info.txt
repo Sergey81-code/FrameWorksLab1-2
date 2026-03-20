@@ -15,3 +15,572 @@ and what i need to write in gitignore
 
 also i need to separate types from front and back
 overall not code, compose structure, logic, endpoints for our app and in the end make up types
+
+
+смотри, мне нужен фронтент для моей бэкенд части. напиши мне его
+он должен быть на react + ts + Ant Design с полной адаптивностью
+сейчас важно!!!
+вот задания: Frontend-часть приложения должна быть запакована в образ nginx (не использовать 
+при сдаче работы dev-сервер). 
+Все данные от backend должны управлять менеджером состояний (включая данные о 
+текущем пользователе). – Необходимо настроить кэширование результатов запросов. – Хотя бы один вид данных (результат запроса) должны использоваться в нескольких 
+частях приложения (например, выводить дополнительную информацию на странице 
+«Информация о пользователе»).
+сделать все в максимально приятном оранжевом дизайне и сохраняя максимально чистую и правильную архитектуру
+из функционала, мне нужно вывод список категорий и продуктов, возможность добавлять их в заказ с разным количеством (плюсики и минусы), затем перейти в корзину и оформить доставку, заполняя все нужные поля 
+также нужен личный кабинет, где можно менять информацию о себе (имя, телефон, дату рождения, аватар), и гже можно посмотрет список аказов со статусами и статусами доставки, адресами и так далее
+
+скидываю тебе routes 
+
+
+router.post("/register", AuthController.register)
+router.post("/login", AuthController.login)
+router.post("/refresh", AuthController.refresh)
+
+import { Request, Response } from "express"
+import * as AuthService from "../services/auth.service"
+import { LoginDto, RegisterDto } from "@lab1_2/types"
+
+export const register = async (req: Request, res: Response) => {
+
+  try {
+    const body: RegisterDto = req.body
+    const result = await AuthService.register(body)
+    res.status(201).json(result);
+  } catch (err: any) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message });
+  }
+
+}
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    const body: LoginDto = req.body
+    const tokens = await AuthService.login(body)
+    res.status(200).json(tokens)
+  } catch (err: any) {
+      const status = err.statusCode || 500;
+      res.status(status).json({ error: err.message });
+  }
+
+  const body: LoginDto = req.body
+
+  const tokens = await AuthService.login(body)
+
+  res.json(tokens)
+}
+
+export const refresh = async (req: Request, res: Response) => {
+
+  try{
+    const { refreshToken } = req.body
+    const tokens = await AuthService.refresh(refreshToken)
+    res.status(200).json(tokens)
+
+  } catch (err: any) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message });
+  }
+
+
+}
+
+
+
+router.get("/me", authMiddleware, UserController.getMe)
+router.patch("/me", authMiddleware, UserController.updateMe)
+router.patch("/me/avatar", authMiddleware, UserController.updateAvatar)
+router.delete("/me", authMiddleware, UserController.deleteMe)
+
+import { Request, Response } from "express"
+import * as UserService from "../services/user.service"
+import { AuthRequest } from "../middlewares/auth.middleware"
+
+
+export const getMe = async (req: AuthRequest, res: Response) => {
+
+  const user = await UserService.getUserProfile(req.userId!)
+
+  res.json(user)
+
+}
+
+export const updateMe = async (req: AuthRequest, res: Response) => {
+
+  const user = await UserService.updateUserProfile(
+    req.userId!,
+    req.body
+  )
+
+  res.json(user)
+
+}
+
+export const updateAvatar = async (req: AuthRequest, res: Response) => {
+
+  const user = await UserService.updateAvatar(
+    req.userId!,
+    req.body.avatar
+  )
+
+  res.json(user)
+
+}
+
+export const deleteMe = async (req: AuthRequest, res: Response) => {
+
+  await UserService.deleteUser(req.userId!)
+
+  res.json({ success: true })
+
+}
+
+
+
+
+
+router.get("/", CategoryController.getAllCategories)
+
+router.get("/:id", CategoryController.getCategoryById)
+
+
+router.post("/", authMiddleware, CategoryController.createCategory)
+
+
+router.patch("/:id", authMiddleware, CategoryController.updateCategory)
+
+
+router.delete("/:id", authMiddleware, CategoryController.deleteCategory)
+
+import { Request, Response } from "express";
+import * as CategoryService from "../services/category.service";
+import { CreateCategoryDto, UpdateCategoryDto } from "@lab1_2/types";
+
+const getParamString = (param: string | string[] | undefined): string => {
+  if (!param) throw new Error("Param is required");
+  return Array.isArray(param) ? param[0] : param;
+};
+
+export const getAllCategories = async (_req: Request, res: Response) => {
+  const categories = await CategoryService.getCategories();
+  res.json(categories);
+};
+
+export const getCategoryById = async (req: Request, res: Response) => {
+  const categoryId = getParamString(req.params.id);
+  const category = await CategoryService.getCategory(categoryId);
+  res.json(category);
+};
+
+export const createCategory = async (req: Request, res: Response) => {
+  const data: CreateCategoryDto = req.body;
+  const category = await CategoryService.createCategory(data);
+  res.json(category);
+};
+
+export const updateCategory = async (req: Request, res: Response) => {
+  const categoryId = getParamString(req.params.id);
+  const data: UpdateCategoryDto = req.body;
+  const category = await CategoryService.updateCategory(categoryId, data);
+  res.json(category);
+};
+
+export const deleteCategory = async (req: Request, res: Response) => {
+  const categoryId = getParamString(req.params.id);
+  await CategoryService.deleteCategory(categoryId);
+  res.json({ success: true });
+};
+
+
+
+
+router.get("/", ProductController.getAllProducts)
+
+
+router.get("/:id", ProductController.getProductById)
+
+
+router.post("/", authMiddleware, ProductController.createProduct)
+
+
+router.patch("/:id", authMiddleware, ProductController.updateProduct)
+
+
+router.delete("/:id", authMiddleware, ProductController.deleteProduct)
+
+// controllers/product.controller.ts
+import { Request, Response } from "express";
+import * as ProductService from "../services/product.service";
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  ProductResponse,
+} from "@lab1_2/types";
+
+const getParamString = (param: string | string[] | undefined): string => {
+  if (!param) throw new Error("Param is required");
+  return Array.isArray(param) ? param[0] : param;
+};
+
+export const getAllProducts = async (_req: Request, res: Response) => {
+  const products: ProductResponse[] = await ProductService.getProducts();
+  res.json(products);
+};
+
+export const getProductById = async (req: Request, res: Response) => {
+  const productId = getParamString(req.params.id);
+  const product: ProductResponse = await ProductService.getProduct(productId);
+  res.json(product);
+};
+
+export const createProduct = async (req: Request, res: Response) => {
+  const data: CreateProductDto = req.body;
+  const product: ProductResponse = await ProductService.createProduct(data);
+  res.json(product);
+};
+
+export const updateProduct = async (req: Request, res: Response) => {
+  const productId = getParamString(req.params.id);
+  const data: UpdateProductDto = req.body;
+  const product: ProductResponse = await ProductService.updateProduct(
+    productId,
+    data
+  );
+  res.json(product);
+};
+
+export const deleteProduct = async (req: Request, res: Response) => {
+  const productId = getParamString(req.params.id);
+  await ProductService.deleteProduct(productId);
+  res.json({ success: true });
+};
+
+
+
+
+
+router.get("/:productId", ProductPhotoController.getPhotos)
+
+router.post("/:productId", authMiddleware, ProductPhotoController.addPhoto)
+
+
+router.delete("/:photoId", authMiddleware, ProductPhotoController.deletePhoto)
+
+import { Request, Response } from "express";
+import * as ProductPhotoService from "../services/product_photo.service";
+
+const getParamString = (param: string | string[] | undefined): string => {
+  if (!param) throw new Error("Param is required");
+  return Array.isArray(param) ? param[0] : param;
+};
+
+export const getPhotos = async (req: Request, res: Response) => {
+  const productId = getParamString(req.params.productId);
+  const photos = await ProductPhotoService.getProductPhotos(productId);
+  res.json(photos);
+};
+
+export const addPhoto = async (req: Request, res: Response) => {
+  const productId = getParamString(req.params.productId);
+  const { url } = req.body;
+  const photo = await ProductPhotoService.addProductPhoto(productId, url);
+  res.json(photo);
+};
+
+export const deletePhoto = async (req: Request, res: Response) => {
+  const photoId = getParamString(req.params.photoId);
+  await ProductPhotoService.deleteProductPhoto(photoId);
+  res.json({ success: true });
+};
+
+
+
+
+
+router.get("/", OrderController.getAllOrders)
+
+
+router.get("/:id", OrderController.getOrderById)
+
+
+router.get("/user/:userId", authMiddleware, OrderController.getOrdersByUser);
+
+
+router.post("/", authMiddleware, OrderController.createOrder)
+
+router.patch("/:id", authMiddleware, OrderController.updateOrder)
+
+
+router.delete("/:id", authMiddleware, OrderController.deleteOrder)
+
+
+import { Request, Response } from "express";
+import * as OrderService from "../services/order.service";
+import { CreateOrderDto, UpdateOrderDto } from "@lab1_2/types";
+
+const getParamString = (param: string | string[] | undefined): string => {
+  if (!param) throw new Error("Param is required");
+  return Array.isArray(param) ? param[0] : param;
+};
+
+export const getAllOrders = async (_req: Request, res: Response) => {
+  const orders = await OrderService.getOrders();
+  res.json(orders);
+};
+
+export const getOrderById = async (req: Request, res: Response) => {
+  const orderId = getParamString(req.params.id);
+  const order = await OrderService.getOrder(orderId);
+  res.json(order);
+};
+
+export const getOrdersByUser = async (req: Request, res: Response) => {
+  const userId = getParamString(req.params.userId);
+  const orders = await OrderService.getOrdersByUserId(userId);
+  res.json(orders);
+};
+
+export const createOrder = async (req: Request, res: Response) => {
+  const data: CreateOrderDto = req.body;
+  const order = await OrderService.createOrder(data);
+  res.json(order);
+};
+
+export const updateOrder = async (req: Request, res: Response) => {
+  const orderId = getParamString(req.params.id);
+  const data: UpdateOrderDto = req.body;
+  const order = await OrderService.updateOrder(orderId, data);
+  res.json(order);
+};
+
+export const deleteOrder = async (req: Request, res: Response) => {
+  const orderId = getParamString(req.params.id);
+  await OrderService.deleteOrder(orderId);
+  res.json({ success: true });
+};
+
+
+
+
+router.get("/", DeliveryController.getAllDeliveries)
+
+
+router.get("/:id", DeliveryController.getDeliveryById)
+
+
+router.post("/", authMiddleware, DeliveryController.createDelivery)
+
+
+router.patch("/:id", authMiddleware, DeliveryController.updateDelivery)
+
+
+router.delete("/:id", authMiddleware, DeliveryController.deleteDelivery)
+
+
+import { Request, Response } from "express";
+import * as DeliveryService from "../services/delivery.service";
+import { CreateDeliveryDto, UpdateDeliveryDto } from "@lab1_2/types";
+
+const getParamString = (param: string | string[] | undefined): string => {
+  if (!param) throw new Error("Param is required");
+  return Array.isArray(param) ? param[0] : param;
+};
+
+export const getAllDeliveries = async (_req: Request, res: Response) => {
+  const deliveries = await DeliveryService.getDeliveries();
+  res.json(deliveries);
+};
+
+export const getDeliveryById = async (req: Request, res: Response) => {
+  const deliveryId = getParamString(req.params.id);
+  const delivery = await DeliveryService.getDelivery(deliveryId);
+  res.json(delivery);
+};
+
+export const createDelivery = async (req: Request, res: Response) => {
+  const data: CreateDeliveryDto = req.body;
+  const delivery = await DeliveryService.createDelivery(data);
+  res.json(delivery);
+};
+
+export const updateDelivery = async (req: Request, res: Response) => {
+  const deliveryId = getParamString(req.params.id);
+  const data: UpdateDeliveryDto = req.body;
+  const delivery = await DeliveryService.updateDelivery(deliveryId, data);
+  res.json(delivery);
+};
+
+export const deleteDelivery = async (req: Request, res: Response) => {
+  const deliveryId = getParamString(req.params.id);
+  await DeliveryService.deleteDelivery(deliveryId);
+  res.json({ success: true });
+};
+
+
+еще важный ньюанс что у нас используются shared types, вот они, используй их желании
+export interface RegisterDto {
+  email: string
+  password: string
+  name: string
+}
+
+export interface LoginDto {
+  email: string
+  password: string
+}
+
+
+export interface Delivery {
+  id: string;
+  order_id: string;
+  address: string;
+  status: string;
+  delivery_date: Date | null;
+  created_at: Date;
+}
+
+export interface CreateDeliveryDto {
+  order_id: string;
+  address: string;
+  delivery_date?: Date;
+}
+
+export interface UpdateDeliveryDto {
+  address?: string;
+  status?: "pending" | "in_transit" | "delivered" | "canceled";
+  delivery_date?: Date | null;
+}
+
+export interface DeliveryResponse {
+  id: string;
+  order_id: string;
+  address: string;
+  status: string;
+  delivery_date: string | null;
+  created_at: string;
+}
+
+
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  status: "pending" | "paid" | "shipped" | "completed" | "canceled";
+  total: number;
+  created_at: Date;
+  items: OrderItem[];
+}
+
+export interface CreateOrderItemDto {
+  product_id: string;
+  quantity: number;
+}
+
+export interface CreateOrderDto {
+  user_id: string;
+  items: CreateOrderItemDto[];
+}
+
+export interface UpdateOrderDto {
+  status?: "pending" | "paid" | "shipped" | "completed" | "canceled";
+}
+
+export interface OrderResponse {
+  id: string;
+  user_id: string;
+  status: string;
+  total: number;
+  created_at: string;
+  items: {
+    product_id: string;
+    quantity: number;
+    price: number;
+  }[];
+}
+
+
+export interface Category {
+  id: string;
+  name: string;
+  parent_id: string | null;
+}
+
+export interface CreateCategoryDto {
+  name: string;
+  parent_id?: string;
+}
+
+export interface UpdateCategoryDto {
+  name?: string;
+  parent_id?: string | null;
+}
+
+export interface CategoryResponseDto {
+  id: string;
+  name: string;
+  parent_id: string | null;
+}
+
+
+export interface ProductPhoto {
+  id: string;
+  product_id: string;
+  url: string;
+}
+
+export interface CreateProductPhotoDto {
+  product_id: string;
+  url: string;
+}
+
+export interface ProductPhotoResponseDto {
+  id: string;
+  url: string;
+}
+
+export interface User {
+  id: string
+  email: string
+  name?: string
+  avatar?: string
+  phone?: string
+  birth_date?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateUserDto {
+  id: string
+  name: string
+  email: string
+  passwordHash: string
+
+}
+
+export interface UpdateUserDto {
+  name?: string
+  phone?: string
+  birth_date?: string
+}
+
+
+export interface UserResponse {
+  id: string
+  email: string
+  name?: string
+  avatar?: string
+  phone?: string
+  birth_date?: string
+}
+
+
+

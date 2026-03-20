@@ -1,175 +1,148 @@
 import {
-  Avatar,
   Button,
-  Drawer,
-  Layout,
-  Menu,
-  Space,
+  Card,
+  Col,
+  Form,
+  Input,
+  Row,
+  Tabs,
   Typography,
-  Grid,
+  message,
 } from "antd";
-import {
-  MenuOutlined,
-  ShoppingCartOutlined,
-  UserOutlined,
-  AppstoreOutlined,
-  LoginOutlined,
-  LogoutOutlined,
-} from "@ant-design/icons";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useMemo, useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { logout, setUser } from "../app/slices/authSlice";
-import { useGetMeQuery } from "../app/api/userApi";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "../app/hooks";
+import { setCredentials } from "../app/slices/authSlice";
+import { useLoginMutation, useRegisterMutation } from "../app/api/authApi";
 
-const { Header, Content, Footer, Sider } = Layout;
-
-export default function AppLayout() {
-  const { md } = Grid.useBreakpoint();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+export default function AuthPage() {
+  const [tab, setTab] = useState<"login" | "register">("login");
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const token = useAppSelector((state) => state.auth.accessToken);
-  const currentUser = useAppSelector((state) => state.auth.user);
+  const [login, { isLoading: loginLoading }] = useLoginMutation();
+  const [register, { isLoading: registerLoading }] = useRegisterMutation();
 
-  const { data: me } = useGetMeQuery(undefined, { skip: !token });
+  const handleLogin = async (values: { email: string; password: string }) => {
+    try {
+      const tokens = await login(values).unwrap();
+      dispatch(setCredentials(tokens));
+      message.success("Вход выполнен");
+      navigate("/catalog");
+    } catch (e: any) {
+      message.error(e?.data?.error ?? "Ошибка входа");
+    }
+  };
 
-  useEffect(() => {
-    if (me) dispatch(setUser(me));
-  }, [me, dispatch]);
-
-  const items = useMemo(
-    () => [
-      { key: "/catalog", label: "Каталог", icon: <AppstoreOutlined /> },
-      { key: "/cart", label: "Корзина", icon: <ShoppingCartOutlined /> },
-      { key: "/profile", label: "Профиль", icon: <UserOutlined /> },
-    ],
-    []
-  );
-
-  const selectedKey = location.pathname.startsWith("/profile")
-    ? "/profile"
-    : location.pathname.startsWith("/cart")
-    ? "/cart"
-    : "/catalog";
-
-  const menu = (
-    <Menu
-      mode="inline"
-      selectedKeys={[selectedKey]}
-      items={items}
-      onClick={(e) => {
-        navigate(e.key);
-        setDrawerOpen(false);
-      }}
-      style={{ borderInlineEnd: 0 }}
-    />
-  );
+  const handleRegister = async (values: {
+    email: string;
+    password: string;
+    name: string;
+  }) => {
+    try {
+      await register(values).unwrap();
+      message.success("Регистрация выполнена, теперь войди в аккаунт");
+      setTab("login");
+      loginForm.setFieldsValue({ email: values.email });
+    } catch (e: any) {
+      message.error(e?.data?.error ?? "Ошибка регистрации");
+    }
+  };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {md ? (
-        <Sider
-          width={240}
+    <Row justify="center" align="middle" style={{ minHeight: "100vh" }}>
+      <Col xs={22} sm={18} md={12} lg={8} xl={6}>
+        <Card
           style={{
-            background: "linear-gradient(180deg, #fff7ed 0%, #ffffff 100%)",
-            borderRight: "1px solid #fde3c3",
+            borderRadius: 24,
+            boxShadow: "0 10px 30px rgba(250, 140, 22, 0.12)",
           }}
         >
-          <div style={{ padding: 24 }}>
-            <Typography.Title level={3} style={{ margin: 0, color: "#d46b08" }}>
-              Orange Shop
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              clean, fast, responsive
-            </Typography.Text>
-          </div>
-          {menu}
-        </Sider>
-      ) : (
-        <Drawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          placement="left"
-          width={280}
-          title="Orange Shop"
-        >
-          {menu}
-        </Drawer>
-      )}
+          <Typography.Title level={2} style={{ color: "#d46b08", marginTop: 0 }}>
+            Orange Shop
+          </Typography.Title>
 
-      <Layout>
-        <Header
-          style={{
-            background: "#fff",
-            padding: "0 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid #f0f0f0",
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-          }}
-        >
-          <Space>
-            {!md && (
-              <Button
-                icon={<MenuOutlined />}
-                onClick={() => setDrawerOpen(true)}
-              />
-            )}
-            <Typography.Title level={4} style={{ margin: 0, color: "#d46b08" }}>
-              Orange Shop
-            </Typography.Title>
-          </Space>
-
-          <Space>
-            {currentUser ? (
-              <>
-                <Avatar
-                  src={currentUser.avatar}
-                  icon={!currentUser.avatar ? <UserOutlined /> : undefined}
-                />
-                <Typography.Text strong>
-                  {currentUser.name ?? currentUser.email}
-                </Typography.Text>
-                <Button
-                  icon={<LogoutOutlined />}
-                  onClick={() => {
-                    dispatch(logout());
-                    navigate("/auth");
-                  }}
-                >
-                  Выйти
-                </Button>
-              </>
-            ) : (
-              <Button icon={<LoginOutlined />} onClick={() => navigate("/auth")}>
-                Войти
-              </Button>
-            )}
-          </Space>
-        </Header>
-
-        <Content style={{ padding: md ? 24 : 12 }}>
-          <div
-            style={{
-              maxWidth: 1400,
-              margin: "0 auto",
-              background: "transparent",
-            }}
-          >
-            <Outlet />
-          </div>
-        </Content>
-
-        <Footer style={{ textAlign: "center", color: "#8c8c8c" }}>
-          Orange Shop ©2026
-        </Footer>
-      </Layout>
-    </Layout>
+          <Tabs
+            activeKey={tab}
+            onChange={(key) => setTab(key as "login" | "register")}
+            items={[
+              {
+                key: "login",
+                label: "Вход",
+                children: (
+                  <Form form={loginForm} layout="vertical" onFinish={handleLogin}>
+                    <Form.Item
+                      name="email"
+                      label="Email"
+                      rules={[{ required: true, message: "Введите email" }]}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      name="password"
+                      label="Пароль"
+                      rules={[{ required: true, message: "Введите пароль" }]}
+                    >
+                      <Input.Password />
+                    </Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loginLoading}
+                      block
+                    >
+                      Войти
+                    </Button>
+                  </Form>
+                ),
+              },
+              {
+                key: "register",
+                label: "Регистрация",
+                children: (
+                  <Form
+                    form={registerForm}
+                    layout="vertical"
+                    onFinish={handleRegister}
+                  >
+                    <Form.Item
+                      name="name"
+                      label="Имя"
+                      rules={[{ required: true, message: "Введите имя" }]}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      name="email"
+                      label="Email"
+                      rules={[{ required: true, message: "Введите email" }]}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      name="password"
+                      label="Пароль"
+                      rules={[{ required: true, message: "Введите пароль" }]}
+                    >
+                      <Input.Password />
+                    </Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={registerLoading}
+                      block
+                    >
+                      Создать аккаунт
+                    </Button>
+                  </Form>
+                ),
+              },
+            ]}
+          />
+        </Card>
+      </Col>
+    </Row>
   );
 }
