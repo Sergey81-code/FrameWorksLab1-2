@@ -75,20 +75,37 @@ router.patch("/me", authMiddleware, UserController.updateMe)
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
  *               avatar:
  *                 type: string
- *                 example: "https://cdn.site/avatar.jpg"
+ *                 format: binary
+ *                 description: New avatar file
  *     responses:
  *       200:
- *         description: Avatar updated
+ *         description: Avatar updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 avatar:
+ *                   type: string
+ *                   description: URL of the uploaded avatar
+ *                   example: "/avatars/1681234567890.jpg"
+ *       400:
+ *         description: No file uploaded or invalid file
  *       401:
  *         description: Unauthorized
  */
-router.patch("/me/avatar", authMiddleware, UserController.updateAvatar)
+router.patch(
+  "/me/avatar",
+  authMiddleware,
+  UserController.uploadAvatar.single("avatar"),
+  UserController.updateAvatarFile
+)
 
 
 /**

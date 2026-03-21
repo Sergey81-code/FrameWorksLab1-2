@@ -11,15 +11,24 @@ import {
   Typography,
   message,
   TreeSelect,
+  Carousel,
+  Image,
 } from "antd";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
-import { useGetCategoriesQuery, useGetProductsQuery } from "../app/api/catalogApi";
+import {
+  useGetCategoriesQuery,
+  useGetProductsQuery,
+  useGetProductPhotosQuery,
+} from "../app/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { addToCart, decreaseQuantity, increaseQuantity } from "../app/slices/cartSlice";
+import {
+  addToCart,
+  decreaseQuantity,
+  increaseQuantity,
+} from "../app/slices/cartSlice";
 import { useNavigate } from "react-router-dom";
 import type { Category, ProductResponse } from "@lab1_2/types";
-
 
 interface TreeNode {
   title: string;
@@ -28,14 +37,63 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
+function ProductCard({
+  product,
+  children,
+}: {
+  product: ProductResponse;
+  children: React.ReactNode;
+}) {
+  const { data: photos = [] } = useGetProductPhotosQuery(product.id);
+
+
+  return (
+    <Card
+      hoverable
+      style={{
+        height: "100%",
+        borderRadius: 20,
+        borderColor: "#fde3c3",
+      }}
+      cover={
+        photos.length > 0 ? (
+        <Carousel dots>
+          {photos.map((photo, index) => (
+            <Image
+              key={index}
+              src={`http://localhost:8082/product_photos/${photo}`}
+              alt={product.name}
+              style={{ height: 200, objectFit: "cover" }}
+              preview={false}
+            />
+          ))}
+        </Carousel>
+        ) : (
+          <div style={{ height: 200, background: "#f5f5f5" }} />
+        )
+      }
+      title={
+        <Space>
+          <Badge color="#fa8c16" />
+          <Typography.Text strong>{product.name}</Typography.Text>
+        </Space>
+      }
+    >
+      {children}
+    </Card>
+  );
+}
+
 export default function CatalogPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
 
-  const { data: categories, isLoading: categoriesLoading } = useGetCategoriesQuery();
-  const { data: products, isLoading: productsLoading } = useGetProductsQuery();
+  const { data: categories, isLoading: categoriesLoading } =
+    useGetCategoriesQuery();
+  const { data: products, isLoading: productsLoading } =
+    useGetProductsQuery();
 
   const cartItems = useAppSelector((state) => state.cart.items);
 
@@ -69,14 +127,17 @@ export default function CatalogPage() {
   const treeData: TreeNode[] = useMemo(() => {
     if (!categories) return [];
 
-  const mapNode = (cat: Category & { children: Category[] }): TreeNode => ({
-    title: cat.name,
-    value: cat.id,
-    key: cat.id,
-    children: cat.children && cat.children.length > 0
-      ? (cat.children as (Category & { children: Category[] })[]).map(mapNode)
-      : undefined,
-  });
+    const mapNode = (
+      cat: Category & { children: Category[] }
+    ): TreeNode => ({
+      title: cat.name,
+      value: cat.id,
+      key: cat.id,
+      children:
+        cat.children && cat.children.length > 0
+          ? cat.children.map((child) => mapNode(child as Category & { children: Category[] }))
+          : undefined,
+    });
 
     return [
       { title: "Все", value: "all", key: "all" },
@@ -98,7 +159,9 @@ export default function CatalogPage() {
 
     return list.filter((product) => {
       const matchesCategory =
-        categoryId === "all" || (product.category_id !== null && selectedCategoryIds.has(product.category_id));
+        categoryId === "all" ||
+        (product.category_id !== null &&
+          selectedCategoryIds.has(product.category_id));
       const matchesSearch = product.name
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -183,43 +246,35 @@ export default function CatalogPage() {
       <Row gutter={[16, 16]}>
         {filteredProducts.map((product) => (
           <Col key={product.id} xs={24} sm={12} md={8} lg={6} xl={6}>
-            <Card
-              hoverable
-              style={{
-                height: "100%",
-                borderRadius: 20,
-                borderColor: "#fde3c3",
-              }}
-              title={
-                <Space>
-                  <Badge color="#fa8c16" />
-                  <Typography.Text strong>{product.name}</Typography.Text>
-                </Space>
-              }
-            >
+            <ProductCard product={product}>
               <Space direction="vertical" style={{ width: "100%" }} size="middle">
                 <Typography.Paragraph ellipsis={{ rows: 3 }}>
                   {product.description ?? "Описание отсутствует"}
                 </Typography.Paragraph>
 
-              <Typography.Title level={4} style={{ margin: 0, color: "#d46b08" }}>
-                {product.discount ? (
-                  <span>
-                    <Typography.Text delete style={{ marginRight: 8 }}>
+                <Typography.Title level={4} style={{ margin: 0, color: "#d46b08" }}>
+                  {product.discount ? (
+                    <span>
+                      <Typography.Text delete style={{ marginRight: 8 }}>
+                        {Math.floor(Number(product.price)).toLocaleString("ru-RU")} ₽
+                      </Typography.Text>
+                      <Typography.Text strong>
+                        {Math.floor(
+                          Number(product.price) *
+                            (1 - product.discount / 100)
+                        ).toLocaleString("ru-RU")} ₽
+                      </Typography.Text>
+                    </span>
+                  ) : (
+                    <span>
                       {Math.floor(Number(product.price)).toLocaleString("ru-RU")} ₽
-                    </Typography.Text>
-                    <Typography.Text strong>
-                      {Math.floor(Number(product.price) * (1 - product.discount / 100)).toLocaleString("ru-RU")} ₽
-                    </Typography.Text>
-                  </span>
-                ) : (
-                  <span>{Math.floor(Number(product.price)).toLocaleString("ru-RU")} ₽</span>
-                )}
-              </Typography.Title>
+                    </span>
+                  )}
+                </Typography.Title>
 
                 {renderControls(product)}
               </Space>
-            </Card>
+            </ProductCard>
           </Col>
         ))}
       </Row>

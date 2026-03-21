@@ -24,7 +24,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" })
 })
 
-const HTTP_PORT = process.env.PORT || 3002
+const HTTP_PORT = process.env.PORT || 3003
 app.listen(HTTP_PORT, () => {
   console.log(`Users REST API running on http://localhost:${HTTP_PORT}`)
 })

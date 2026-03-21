@@ -60,7 +60,7 @@ const dynamicBaseQuery: BaseQueryFn<
 
       const refreshResult = await refreshBaseQuery(
         {
-          url: "/refresh",
+          url: "/auth/refresh",
           method: "POST",
           body: { refreshToken },
         },
@@ -78,7 +78,6 @@ const dynamicBaseQuery: BaseQueryFn<
           })
         );
 
-        // Повторяем исходный запрос с новым токеном
         result = await rawBaseQuery(args, api, extraOptions);
       } else {
         api.dispatch(logout());

@@ -1,0 +1,124 @@
+x-environment: &default-env
+  DB_HOST: lab1_2_db
+  DB_PORT: 5432
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  DB_NAME: lab1_2
+
+services:
+  lab1_2_db:
+    container_name: 'lab1_2_db'
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lab1_2 
+    ports:
+      - "5440:5432"
+
+  lab1_2_users_service:
+    build:
+      context: .
+      dockerfile: backend/users_service/Dockerfile
+    environment:
+      <<: *default-env
+      PORT: 3002
+      GRPC_PORT: 50051
+    volumes:
+      - uploads:/uploads
+    ports:
+      - "3002:3002"
+      - "50051:50051"
+    depends_on:
+      - lab1_2_db
+
+  lab1_2_product_service:
+    build:
+      context: .
+      dockerfile: backend/product_service/Dockerfile
+    environment:
+      <<: *default-env
+      PORT: 3003
+    volumes:
+      - uploads:/uploads
+    ports:
+      - "3003:3003"
+    depends_on:
+      - lab1_2_db
+
+  lab1_2_orders_service:
+    build:
+      context: .
+      dockerfile: backend/orders_service/Dockerfile
+    environment:
+      <<: *default-env
+      PORT: 3006
+    ports:
+      - "3006:3006"
+    depends_on:
+      - lab1_2_db
+
+  lab1_2_delivery_service:
+    build:
+      context: .
+      dockerfile: backend/delivery_service/Dockerfile
+    environment:
+      <<: *default-env
+      PORT: 3004
+    ports:
+      - "3004:3004"
+    depends_on:
+      - lab1_2_db
+
+  lab1_2_auth_service:
+    build:
+      context: .
+      dockerfile: backend/auth_service/Dockerfile
+    environment:
+      <<: *default-env
+      PORT: 3000
+      USER_SERVICE_ADDRESS: lab1_2_users_service:50051
+    ports:
+      - "3000:3000"
+    depends_on:
+      - lab1_2_db
+
+  lab1_2_frontend:
+    build:
+      context: .
+      dockerfile: frontend/lab1_2/Dockerfile
+    ports:
+      - "5174:5174"
+    depends_on:
+      - lab1_2_users_service
+      - lab1_2_product_service
+      - lab1_2_orders_service
+      - lab1_2_delivery_service
+      - lab1_2_auth_service
+
+  lab1_2_nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "8082:80"
+    volumes:
+      - uploads:/uploads
+      - ./product_photos:/product_photos
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - lab1_2_frontend
+      - lab1_2_users_service
+      - lab1_2_product_service
+      - lab1_2_orders_service
+      - lab1_2_delivery_service
+      - lab1_2_auth_service
+
+volumes:
+  uploads:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./uploads
+      o: bind

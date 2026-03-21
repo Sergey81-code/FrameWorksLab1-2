@@ -2,18 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY backend/users_service/package*.json ./
-COPY backend/users_service/tsconfig.json ./
+COPY backend/orders_service/package*.json ./
+COPY backend/orders_service/tsconfig.json ./
 
 COPY packages/types ./packages/types
 COPY packages/protos ./packages/protos
 
 RUN npm install --legacy-peer-deps ./packages/types ./packages/protos
 
-COPY backend/users_service/src ./src
-COPY backend/users_service/.env ./.env
+COPY backend/orders_service/src ./src
+COPY backend/orders_service/.env ./.env
 
-EXPOSE 3002
-EXPOSE 50051
+EXPOSE 3006
 
 CMD npm run migrate && npm run dev

@@ -43,7 +43,7 @@ const grpcServer = new grpc.Server()
 grpcServer.addService(UserService.service, userServiceImpl)
 
 const GRPC_PORT = process.env.GRPC_PORT
-grpcServer.bindAsync(`127.0.0.1:${GRPC_PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
+grpcServer.bindAsync(`0.0.0.0:${GRPC_PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
   if (err) {
     console.error("Failed to start gRPC server:", err)
     return

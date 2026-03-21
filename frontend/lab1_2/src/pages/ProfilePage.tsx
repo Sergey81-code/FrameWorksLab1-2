@@ -20,10 +20,9 @@ import type { UploadProps } from "antd";
 import { UserOutlined, UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { useAppDispatch } from "../app/hooks";
 import {
   useGetMeQuery,
-  useUpdateAvatarMutation,
   useUpdateMeMutation,
   useDeleteMeMutation,
 } from "../app/api/userApi";
@@ -45,15 +44,13 @@ type ProfileForm = {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const currentUser = useAppSelector((state) => state.auth.user);
 
   const { data: me } = useGetMeQuery();
   const [updateMe, { isLoading: updateLoading }] = useUpdateMeMutation();
-  const [updateAvatar] = useUpdateAvatarMutation();
   const [deleteMe] = useDeleteMeMutation();
 
   const [form] = Form.useForm<ProfileForm>();
-  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const { data: orders = [] } = useGetOrdersByUserQuery(me?.id ?? "", {
     skip: !me?.id,
@@ -63,6 +60,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (me) {
+      setAvatarUrl(me.avatar ?? null);
       dispatch(setUser(me));
       form.setFieldsValue({
         name: me.name,
@@ -94,28 +92,10 @@ export default function ProfilePage() {
           : undefined,
       }).unwrap();
 
-      if (avatarBase64) {
-        await updateAvatar({ avatar: avatarBase64 }).unwrap();
-      }
-
       message.success("Профиль обновлён");
     } catch (e: any) {
       message.error(e?.data?.error ?? "Не удалось обновить профиль");
     }
-  };
-
-  const uploadProps: UploadProps = {
-    accept: "image/*",
-    beforeUpload: (file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setAvatarBase64(String(reader.result));
-      };
-      reader.readAsDataURL(file);
-      return false;
-    },
-    maxCount: 1,
-    showUploadList: false,
   };
 
   const handleDeleteAccount = async () => {
@@ -129,18 +109,48 @@ export default function ProfilePage() {
     }
   };
 
-const orderRows = orders.map((order) => ({
-  ...order,
-  delivery: deliveryMap.get(order.id),
-  delivery_date: deliveryMap.get(order.id)?.delivery_date
-    ? dayjs(deliveryMap.get(order.id)!.delivery_date).add(3, "hour")
-    : null,
-}));
+  const uploadProps: UploadProps = {
+    accept: "image/*",
+    maxCount: 1,
+    showUploadList: false,
+    customRequest: async ({ file, onSuccess, onError }) => {
+      try {
+        const formData = new FormData();
+        formData.append("avatar", file as Blob);
+
+        const res = await fetch("/users/me/avatar", {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
+          },
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
+        onSuccess?.(data, file);
+        setAvatarUrl(data.avatar);
+      } catch (err) {
+        onError?.(err as Error);
+        message.error("Не удалось загрузить аватар");
+      }
+    },
+  };
+
+  const orderRows = orders.map((order) => ({
+    ...order,
+    delivery: deliveryMap.get(order.id),
+    delivery_date: deliveryMap.get(order.id)?.delivery_date
+      ? dayjs(deliveryMap.get(order.id)!.delivery_date).add(3, "hour")
+      : null,
+  }));
 
   const sortedOrders = useMemo(() => {
     const statusOrder = ["pending", "processing", "shipped", "delivered", "canceled"];
     return [...orderRows].sort((a, b) => {
-      const statusDiff = statusOrder.indexOf(a.delivery?.status ?? "") - statusOrder.indexOf(b.delivery?.status ?? "");
+      const statusDiff =
+        statusOrder.indexOf(a.delivery?.status ?? "") -
+        statusOrder.indexOf(b.delivery?.status ?? "");
       if (statusDiff !== 0) return statusDiff;
 
       if (!a.delivery_date) return 1;
@@ -181,9 +191,7 @@ const orderRows = orders.map((order) => ({
       title: "Дата и время доставки",
       key: "deliveryDate",
       render: (_: unknown, row: any) =>
-            row.delivery_date
-      ? dayjs.utc(row.delivery_date).local().format("DD.MM.YYYY HH:mm")
-      : "—",
+        row.delivery_date ? dayjs.utc(row.delivery_date).local().format("DD.MM.YYYY HH:mm") : "—",
     },
     {
       title: "Доставка",
@@ -225,8 +233,8 @@ const orderRows = orders.map((order) => ({
                     <Space direction="vertical" align="center" style={{ width: "100%" }}>
                       <Avatar
                         size={128}
-                        src={avatarBase64 || currentUser?.avatar}
-                        icon={!avatarBase64 && !currentUser?.avatar ? <UserOutlined /> : undefined}
+                        src={avatarUrl || undefined}
+                        icon={!avatarUrl ? <UserOutlined /> : undefined}
                       />
                       <Upload {...uploadProps}>
                         <Button icon={<UploadOutlined />}>Изменить аватар</Button>
